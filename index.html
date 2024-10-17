@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Phrase Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="script.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Chinese Phrase Game</h1>
+    </header>
+
+    <main>
+        <section id="welcome">
+            <label for="numQuestions">Select number of questions:</label>
+            <select id="numQuestions">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+            </select>
+            <button id="startBtn">Start Exercise</button>
+            <input type="file" id="uploadCSV" accept=".csv" />
+            <button id="uploadBtn">Upload CSV</button>
+            <button id="listBtn">Liste</button>
+        </section>
+
+        <section id="list" style="display: none;">
+            <!-- Phrase list will be dynamically populated here -->
+        </section>
+
+        <section id="exercise" style="display:none;">
+            <button id="backBtn">Return to Home</button>
+            <div id="phrase"></div>
+            <div id="words-container" class="words-container"></div>
+            <div id="drop-zone" class="drop-zone">Drop words here to form the phrase</div>
+            <button id="checkAnswer">Check Answer</button>
+            <div id="feedback"></div>
+            <div id="score">Score: 0</div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 Chinese Phrase Game. All rights reserved.</p>
+    </footer>
+</body>
+</html>

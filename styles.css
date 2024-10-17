@@ -1,0 +1,47 @@
+body {
+    font-family: "Kaiti", Arial, sans-serif;
+    text-align: center;
+}
+
+#answers div, #words-container div {
+    display: inline-block;
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid #000;
+    cursor: pointer;
+}
+
+#answers div:active, #words-container div:active {
+    background-color: #f0f0f0;
+}
+
+#drop-zone {
+    border: 2px dashed #aaa;
+    padding: 20px;
+    min-height: 50px;
+    margin-top: 20px;
+}
+
+.dropped-word {
+    display: inline-block;
+    margin: 5px;
+    padding: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+}
+
+.word {
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+input[type="file"] {
+    margin-top: 20px;
+}
