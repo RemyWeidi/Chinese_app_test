@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Variables de référence des éléments HTML
     const startBtn = document.getElementById("startBtn");
     const backBtn = document.getElementById("backBtn");
     const numQuestions = document.getElementById("numQuestions");
@@ -15,26 +16,42 @@ document.addEventListener("DOMContentLoaded", () => {
     const listBtn = document.getElementById("listBtn");
     const listDiv = document.getElementById("list");
 
+    // Variables de contrôle
     let phrases = [];
     let currentIndex = 0;
     let score = 0;
     let streak = 0;
-    let draggedElement = null; // Élément actuellement en cours de glisser-déposer
+    let draggedElement = null;
+    let hintIndex = 0;
+    let hintUsed = false;
 
-    // Charger les phrases depuis le Local Storage ou le fichier JSON
+    // Charger les phrases depuis le Local Storage et le fichier JSON
     function loadPhrases() {
         const storedPhrases = localStorage.getItem('phrases');
-        if (storedPhrases) {
-            phrases = JSON.parse(storedPhrases);
-        } else {
-            fetch("phrases.json")
-                .then(response => response.json())
-                .then(data => {
-                    phrases = data;
-                    savePhrasesToLocalStorage(); // Sauvegarde initiale
-                })
-                .catch(error => console.error("Erreur de chargement des phrases : ", error));
-        }
+
+        // Charger les phrases depuis le JSON et fusionner avec le Local Storage
+        fetch("phrases.json")
+            .then(response => response.json())
+            .then(data => {
+                const jsonPhrases = data;
+
+                if (storedPhrases) {
+                    phrases = JSON.parse(storedPhrases);
+
+                    // Ajouter les phrases du JSON qui ne sont pas dans le Local Storage
+                    jsonPhrases.forEach((jsonPhrase) => {
+                        if (!phrases.some((storedPhrase) => storedPhrase.chinese === jsonPhrase.chinese)) {
+                            phrases.push(jsonPhrase);
+                        }
+                    });
+                } else {
+                    phrases = jsonPhrases;
+                }
+
+                savePhrasesToLocalStorage(); // Sauvegarder les phrases fusionnées dans le Local Storage
+                renderPhraseList(); // Afficher la liste des phrases après chargement
+            })
+            .catch(error => console.error("Erreur de chargement des phrases : ", error));
     }
 
     // Sauvegarder les phrases dans le Local Storage
@@ -44,6 +61,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Appel de la fonction de chargement au démarrage
     loadPhrases();
+
+    // Fonction de mélange aléatoire améliorée pour les mots et la ponctuation
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
 
     // Gestion de l'importation CSV
     uploadBtn.addEventListener("click", () => {
@@ -64,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 });
                 savePhrasesToLocalStorage();  // Sauvegarder les phrases importées
+                renderPhraseList();  // Mettre à jour la liste après importation
                 alert("Phrases successfully uploaded!");
             };
             reader.readAsText(file);
@@ -93,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 phrases.push({ chinese: newChinese.trim(), translation: newTranslation.trim() });
                 savePhrasesToLocalStorage();  // Sauvegarder après ajout
                 alert("Phrase ajoutée avec succès !");
-                renderPhraseList();
+                renderPhraseList();  // Mettre à jour la liste après ajout
             }
         });
 
@@ -124,7 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
         currentIndex = 0;
         score = 0;
         streak = 0;
+        hintIndex = 0;  // Réinitialiser l'indice de hint
+        hintUsed = false;  // Réinitialiser l'utilisation du hint
         feedbackDiv.innerHTML = "";  // Efface les messages de réponse précédents
+        checkAnswerBtn.textContent = "Check Answer";  // Réinitialiser le texte du bouton
         if (selectedPhrases.length === 0) {
             alert("Aucune phrase disponible. Veuillez importer ou ajouter des phrases.");
             return;
@@ -145,48 +174,92 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Vérification de la réponse
     checkAnswerBtn.addEventListener("click", () => {
-        const userAnswer = [...dropZone.children].map(div => div.textContent).join("");
-        const correctAnswer = phrases[currentIndex].chinese;
+        if (checkAnswerBtn.textContent === "Next Sentence") {
+            feedbackDiv.innerHTML = "";  // Effacer le feedback précédent
+            checkAnswerBtn.textContent = "Check Answer";
+            currentIndex++;
 
-        if (userAnswer === correctAnswer) {
-            streak++;
-            score += 10;
-            if (streak >= 2) score += 5;
-            if (streak >= 5) score += 10;
-            if (streak >= 10) score += 25;
-            feedbackDiv.innerHTML = `<span style='color: green; font-size: 1.8em;'>${correctAnswer}<br>${phrases[currentIndex].translation}</span>`;
+            if (currentIndex < phrases.length) {
+                showNextPhrase();
+            } else {
+                feedbackDiv.innerHTML = "<br><span style='font-size: 2em; font-weight: bold;'>Exercice terminé !</span>";
+            }
+            return;
+        }
+
+        // Obtenir la réponse de l'utilisateur et la réponse correcte
+        let userAnswer = [...dropZone.children].map(div => div.textContent).join("").trim();
+        let correctAnswer = phrases[currentIndex].chinese.trim();
+
+        // Supprimer les espaces, normaliser la réponse avant la comparaison, et supprimer tous les caractères invisibles
+        userAnswer = userAnswer.replace(/[\s\u200B-\u200D\uFEFF]/g, "").normalize("NFC");
+        correctAnswer = correctAnswer.replace(/[\s\u200B-\u200D\uFEFF]/g, "").normalize("NFC");
+
+        // Comparaison stricte de la réponse de l'utilisateur et de la réponse correcte
+        let isCorrect = userAnswer === correctAnswer;
+
+        if (isCorrect) {
+            feedbackDiv.innerHTML = `
+                <div style='text-align: center; font-weight: bold; font-size: 1.8em; color: ${hintUsed ? "orange" : "green"};'>${hintUsed ? "Bonne réponse (sans points)" : "Bonne réponse"}</div>
+                <span style='color: ${hintUsed ? "orange" : "green"}; font-size: 1.8em; font-weight: bold;'>${correctAnswer}</span>
+                <br><span style='color: ${hintUsed ? "orange" : "green"}; font-size: 1.8em;'>${phrases[currentIndex].translation}</span>`;
+            
+            // Attribution des points seulement si aucun indice n'a été utilisé
+            if (!hintUsed) {
+                streak++;
+                score += 10;
+                if (streak >= 2) score += 5;
+                if (streak >= 5) score += 10;
+                if (streak >= 10) score += 25;
+            } else {
+                streak = 0;  // Réinitialiser la streak si un hint a été utilisé
+            }
+
         } else {
             streak = 0;
             feedbackDiv.innerHTML = `
+                <div style='text-align: center; font-weight: bold; font-size: 1.8em; color: red;'>Mauvaise réponse</div>
                 <span style='color: red; font-size: 1.8em; font-weight: bold;'>${correctAnswer}</span>
                 <br><span style='color: red; font-size: 1.8em;'>${phrases[currentIndex].translation}</span>`;
         }
 
         scoreDiv.innerHTML = `<span style='font-size: 1.8em;'>Score: ${score}</span><br><br>`;
-        currentIndex++;
-
-        if (currentIndex < phrases.length) {
-            showNextPhrase();
-        } else {
-            feedbackDiv.innerHTML += "<br><span style='font-size: 2em; font-weight: bold;'>Exercice terminé !</span>";
-        }
+        checkAnswerBtn.textContent = "Next Sentence";  // Changer le texte du bouton après la vérification
     });
 
     // Fonction pour afficher la phrase suivante
     function showNextPhrase() {
         const phrase = phrases[currentIndex];
-        const tokens = phrase.chinese.split("").filter(token => token.trim() !== "");
+        let tokens = Array.from(phrase.chinese);  // Convertir la phrase en tableau de caractères
 
-        const shuffledWords = tokens.sort(() => Math.random() - 0.5);
+        // Filtrer les espaces vides pour éviter d'avoir des cases vides dans les mots mélangés
+        tokens = tokens.filter(token => token.trim() !== '');
 
-        phraseDiv.innerHTML = `<span style='font-size: 1.3em;'>${phrase.translation}</span>`;
+        // Séparer les mots et la ponctuation
+        const wordsAndPunctuation = [];
+        tokens.forEach(token => {
+            if (/[，。、]/.test(token)) {
+                wordsAndPunctuation.push(token); // Ajouter la ponctuation dans une entrée séparée
+            } else {
+                wordsAndPunctuation.push(token);
+            }
+        });
+
+        // Mélanger les mots et la ponctuation de manière robuste
+        shuffleArray(wordsAndPunctuation);
+
+        // Ajuster la taille de la traduction en fonction du dispositif utilisé
+        let translationFontSize = window.innerWidth < 768 ? "1em" : "1.3em";
+        let wordFontSize = window.innerWidth < 768 ? "2em" : "3em";
+
+        phraseDiv.innerHTML = `<span style='font-size: ${translationFontSize};'>${phrase.translation}</span>`;
         wordsContainer.innerHTML = "";
         dropZone.innerHTML = "";
 
-        shuffledWords.forEach(word => {
+        wordsAndPunctuation.forEach(word => {
             const div = document.createElement("div");
             div.textContent = word;
-            div.style.fontSize = '3em';
+            div.style.fontSize = wordFontSize;
             div.style.backgroundColor = '#f0f0f0';
             div.style.padding = '5px';
             div.style.margin = '5px';
@@ -195,10 +268,12 @@ document.addEventListener("DOMContentLoaded", () => {
             div.draggable = true;
             div.classList.add("draggable-word");
 
+            // Gestion des événements de glisser-déposer pour desktop
             div.addEventListener("dragstart", (e) => {
                 draggedElement = e.target;
             });
 
+            // Gestion du clic pour déplacer des mots
             div.addEventListener("click", () => {
                 if (!div.classList.contains("dropped-word")) {
                     dropZone.appendChild(div);
@@ -232,6 +307,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 draggedElement.classList.add("dropped-word");
             }
         });
+
+        // Réinitialiser l'indice de hint
+        hintIndex = 0;
+        hintRevealDiv.innerHTML = ""; // Réinitialiser l'affichage du hint
+        hintUsed = false;  // Réinitialiser l'utilisation du hint pour la nouvelle phrase
     }
 
     // Fonctions pour modifier et supprimer des phrases
@@ -252,4 +332,44 @@ document.addEventListener("DOMContentLoaded", () => {
             renderPhraseList();
         }
     };
+
+    // Modification du style du titre principal
+    const title = document.querySelector("h1");
+    if (title) {
+        title.style.fontFamily = "'Poppins', sans-serif";
+        title.style.fontSize = "3em";
+        title.style.color = "#2a9d8f";
+        title.style.textAlign = "center";
+        title.style.marginTop = "20px";
+        title.style.textShadow = "1px 1px 2px rgba(0, 0, 0, 0.1)"; // Ombre plus douce
+    }
+
+    // Ajouter un bouton "Hint" et sa fonctionnalité
+    const hintBtn = document.createElement("button");
+    hintBtn.textContent = "Hint";
+    hintBtn.style.backgroundColor = "#007bff";
+    hintBtn.style.color = "white";
+    hintBtn.style.border = "none";
+    hintBtn.style.padding = "10px 20px";
+    hintBtn.style.marginTop = "20px";
+    hintBtn.style.cursor = "pointer";
+    hintBtn.style.fontSize = "1.2em";
+    hintBtn.style.borderRadius = "5px";
+    hintBtn.style.alignSelf = "center";
+    exerciseDiv.appendChild(hintBtn);
+
+    const hintRevealDiv = document.createElement("div");
+    hintRevealDiv.style.marginTop = "10px";
+    hintRevealDiv.style.fontSize = "1.5em";
+    hintRevealDiv.style.fontWeight = "bold";
+    hintRevealDiv.style.color = "#007bff";
+    exerciseDiv.appendChild(hintRevealDiv);
+
+    hintBtn.addEventListener("click", () => {
+        if (hintIndex < phrases[currentIndex].chinese.length) {
+            hintRevealDiv.textContent += phrases[currentIndex].chinese[hintIndex];
+            hintIndex++;
+            hintUsed = true;  // Marquer que le hint a été utilisé
+        }
+    });
 });
