@@ -6,6 +6,79 @@
     <title>Chinese Phrase Game</title>
     <link rel="stylesheet" href="styles.css">
     <script defer src="script.js"></script>
+    <style>
+        /* Styles pour le sélecteur de nombre de questions */
+        label {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        select {
+            padding: 10px;
+            font-size: 1.2em;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        select:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Couleurs des boutons */
+        #uploadBtn, #listBtn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #008CBA; /* Couleur partagée entre Liste et Upload */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #uploadBtn:hover, #listBtn:hover {
+            background-color: #007B9A;
+        }
+
+        #startBtn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #4CAF50; /* Inversion des couleurs */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #startBtn:hover {
+            background-color: #45a049;
+        }
+
+        input[type="file"] {
+            display: none; /* Caché */
+        }
+
+        /* Style amélioré pour le sélecteur */
+        #numQuestions {
+            margin-left: 10px;
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 1em;
+            border: 2px solid #ddd;
+        }
+
+        #numQuestions option {
+            font-size: 1em;
+        }
+
+        button {
+            margin: 10px;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -20,14 +93,19 @@
                 <option value="10">10</option>
                 <option value="15">15</option>
             </select>
+
             <button id="startBtn">Start Exercise</button>
-            <input type="file" id="uploadCSV" accept=".csv" />
-            <button id="uploadBtn">Upload CSV</button>
             <button id="listBtn">Liste</button>
+
+            <!-- Bouton Upload CSV -->
+            <button id="uploadBtn">Upload CSV</button>
+
+            <!-- Input CSV caché -->
+            <input type="file" id="uploadCSV" accept=".csv" />
         </section>
 
         <section id="list" style="display: none;">
-            <!-- Phrase list will be dynamically populated here -->
+            <!-- Liste des phrases dynamiquement peuplée ici -->
         </section>
 
         <section id="exercise" style="display:none;">
