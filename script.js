@@ -265,7 +265,6 @@ document.addEventListener("DOMContentLoaded", () => {
             div.style.margin = '5px';
             div.style.borderRadius = '8px';
             div.style.cursor = 'pointer';
-            div.draggable = true;
             div.classList.add("draggable-word");
 
             // Gestion des événements de glisser-déposer pour desktop
@@ -283,6 +282,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     div.classList.remove("dropped-word");
                 }
             });
+
+            // Ajouter la gestion du glisser-déposer pour mobile (touchstart, touchmove, touchend)
+            div.addEventListener("touchstart", handleTouchStart);
+            div.addEventListener("touchmove", handleTouchMove);
+            div.addEventListener("touchend", handleTouchEnd);
 
             wordsContainer.appendChild(div);
         });
@@ -312,6 +316,27 @@ document.addEventListener("DOMContentLoaded", () => {
         hintIndex = 0;
         hintRevealDiv.innerHTML = ""; // Réinitialiser l'affichage du hint
         hintUsed = false;  // Réinitialiser l'utilisation du hint pour la nouvelle phrase
+    }
+
+    // Fonctions pour gérer les événements tactiles
+    function handleTouchStart(e) {
+        draggedElement = e.target;
+        draggedElement.classList.add("dragging");
+    }
+
+    function handleTouchMove(e) {
+        const touch = e.touches[0];
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (elem && elem !== draggedElement && elem.classList.contains("dropped-word")) {
+            dropZone.insertBefore(draggedElement, elem);
+        } else if (elem && elem !== draggedElement) {
+            dropZone.appendChild(draggedElement);
+        }
+    }
+
+    function handleTouchEnd(e) {
+        draggedElement.classList.remove("dragging");
+        draggedElement = null;
     }
 
     // Fonctions pour modifier et supprimer des phrases
