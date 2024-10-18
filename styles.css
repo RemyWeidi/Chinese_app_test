@@ -1,47 +1,103 @@
+/* styles.css */
+
+/* Style de base */
 body {
-    font-family: "Kaiti", Arial, sans-serif;
+    font-family: Arial, sans-serif;
     text-align: center;
+    margin: 0;
+    padding: 0;
 }
 
-#answers div, #words-container div {
-    display: inline-block;
-    margin: 5px;
-    padding: 10px;
-    border: 1px solid #000;
-    cursor: pointer;
+h1 {
+    font-size: 2.5em;
+    margin: 20px 0;
 }
 
-#answers div:active, #words-container div:active {
-    background-color: #f0f0f0;
+/* Conteneur de mots pour l'exercice */
+.words-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px;
 }
 
-#drop-zone {
-    border: 2px dashed #aaa;
-    padding: 20px;
-    min-height: 50px;
-    margin-top: 20px;
-}
-
-.dropped-word {
-    display: inline-block;
-    margin: 5px;
-    padding: 10px;
-    background-color: #e0e0e0;
-    border-radius: 5px;
-}
-
+/* Style des mots chinois dans l'exercice */
 .word {
+    display: inline-block;
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin: 5px;
+    cursor: pointer;
+    font-size: 3em;
+}
+
+/* Zone de dépôt pour les mots réorganisés */
+.drop-zone {
+    border: 2px dashed #888;
+    min-height: 50px;
+    margin: 20px;
+    padding: 10px;
+    font-size: 1.5em;
+    text-align: center;
     background-color: #f9f9f9;
+}
+
+/* Traduction anglaise avec une taille plus grande */
+.translation {
+    font-size: 1.8em; /* Augmentée pour être plus lisible */
+    font-family: Arial, sans-serif; /* Police agréable à lire */
+    margin: 10px 0;
+}
+
+/* Style des boutons */
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
     border-radius: 5px;
 }
 
-button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
+button:hover {
+    background-color: #45a049;
 }
 
-input[type="file"] {
-    margin-top: 20px;
+/* Catégories */
+.category {
+    font-size: 1.5em;
+    margin: 20px 0;
+}
+
+.category h2 {
+    color: #333;
+    margin-bottom: 10px;
+    cursor: pointer; /* Rendre cliquable */
+}
+
+.category div {
+    font-size: 1.2em;
+    margin-bottom: 5px;
+}
+
+/* Boutons pour retour et liste */
+#listBtn {
+    background-color: #f0ad4e;
+}
+
+#backBtn {
+    background-color: #5bc0de;
+}
+
+/* Adaptation pour les petits écrans (mobile) */
+@media only screen and (max-width: 600px) {
+    .word {
+        font-size: 2em;
+    }
+
+    .drop-zone {
+        font-size: 1.2em;
+    }
 }
