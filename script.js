@@ -1,5 +1,4 @@
-// script.js
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
     const startBtn = document.getElementById("startBtn");
     const backBtn = document.getElementById("backBtn");
     const numQuestions = document.getElementById("numQuestions");
@@ -20,16 +19,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     let currentIndex = 0;
     let score = 0;
     let streak = 0;
+    let draggedElement = null; // Élément actuellement en cours de glisser-déposer
 
-    // Charger les phrases depuis le fichier JSON
-    try {
-        const response = await fetch("phrases.json");
-        if (response.ok) {
-            phrases = await response.json();
+    // Charger les phrases depuis le Local Storage ou le fichier JSON
+    function loadPhrases() {
+        const storedPhrases = localStorage.getItem('phrases');
+        if (storedPhrases) {
+            phrases = JSON.parse(storedPhrases);
+        } else {
+            fetch("phrases.json")
+                .then(response => response.json())
+                .then(data => {
+                    phrases = data;
+                    savePhrasesToLocalStorage(); // Sauvegarde initiale
+                })
+                .catch(error => console.error("Erreur de chargement des phrases : ", error));
         }
-    } catch (error) {
-        console.error("Échec du chargement des phrases : ", error);
     }
+
+    // Sauvegarder les phrases dans le Local Storage
+    function savePhrasesToLocalStorage() {
+        localStorage.setItem('phrases', JSON.stringify(phrases));
+    }
+
+    // Appel de la fonction de chargement au démarrage
+    loadPhrases();
 
     // Gestion de l'importation CSV
     uploadBtn.addEventListener("click", () => {
@@ -49,6 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         phrases.push({ chinese: chinese.trim(), translation: translation.trim() });
                     }
                 });
+                savePhrasesToLocalStorage();  // Sauvegarder les phrases importées
                 alert("Phrases successfully uploaded!");
             };
             reader.readAsText(file);
@@ -76,6 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const newTranslation = prompt("Entrez la traduction :");
             if (newChinese && newTranslation) {
                 phrases.push({ chinese: newChinese.trim(), translation: newTranslation.trim() });
+                savePhrasesToLocalStorage();  // Sauvegarder après ajout
                 alert("Phrase ajoutée avec succès !");
                 renderPhraseList();
             }
@@ -101,18 +117,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         listDiv.appendChild(backToWelcomeBtn);
     }
 
-    // Bouton pour démarrer l'exercice
+    // Fonction pour démarrer l'exercice
     startBtn.addEventListener("click", () => {
         const num = parseInt(numQuestions.value, 10);
-        const selectedPhrases = phrases.sort(() => Math.random() - 0.5).slice(0, num);
+        const selectedPhrases = phrases.slice().sort(() => Math.random() - 0.5).slice(0, num);
         currentIndex = 0;
         score = 0;
         streak = 0;
+        feedbackDiv.innerHTML = "";  // Efface les messages de réponse précédents
         if (selectedPhrases.length === 0) {
             alert("Aucune phrase disponible. Veuillez importer ou ajouter des phrases.");
             return;
         }
-        phrases = selectedPhrases;
+        phrases = selectedPhrases;  // Stocker l'ordre mélangé pour cet exercice
         showNextPhrase();
         exerciseDiv.style.display = "block";
         welcomeDiv.style.display = "none";
@@ -137,31 +154,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (streak >= 2) score += 5;
             if (streak >= 5) score += 10;
             if (streak >= 10) score += 25;
-            feedbackDiv.innerHTML = `<span style='color: green;'>Bonne réponse !</span>`;
+            feedbackDiv.innerHTML = `<span style='color: green; font-size: 1.8em;'>${correctAnswer}<br>${phrases[currentIndex].translation}</span>`;
         } else {
             streak = 0;
-            feedbackDiv.innerHTML = `<span style='color: red;'>Mauvaise réponse !</span><br>La phrase correcte est : ${correctAnswer}`;
+            feedbackDiv.innerHTML = `
+                <span style='color: red; font-size: 1.8em; font-weight: bold;'>${correctAnswer}</span>
+                <br><span style='color: red; font-size: 1.8em;'>${phrases[currentIndex].translation}</span>`;
         }
 
-        scoreDiv.textContent = `Score: ${score}`;
-        feedbackDiv.innerHTML += `<br>Traduction : ${phrases[currentIndex].translation}`;
+        scoreDiv.innerHTML = `<span style='font-size: 1.8em;'>Score: ${score}</span><br><br>`;
         currentIndex++;
 
         if (currentIndex < phrases.length) {
             showNextPhrase();
         } else {
-            feedbackDiv.innerHTML += "<br>Exercice terminé !";
+            feedbackDiv.innerHTML += "<br><span style='font-size: 2em; font-weight: bold;'>Exercice terminé !</span>";
         }
     });
 
     // Fonction pour afficher la phrase suivante
     function showNextPhrase() {
         const phrase = phrases[currentIndex];
-        // Séparer chaque caractère de la phrase chinoise
-        const tokens = phrase.chinese.split("");
+        const tokens = phrase.chinese.split("").filter(token => token.trim() !== "");
+
         const shuffledWords = tokens.sort(() => Math.random() - 0.5);
 
-        phraseDiv.innerHTML = `<span style='font-size: 3em;'>Phrase à réorganiser : ${phrase.translation}</span>`;
+        phraseDiv.innerHTML = `<span style='font-size: 1.3em;'>${phrase.translation}</span>`;
         wordsContainer.innerHTML = "";
         dropZone.innerHTML = "";
 
@@ -169,53 +187,52 @@ document.addEventListener("DOMContentLoaded", async () => {
             const div = document.createElement("div");
             div.textContent = word;
             div.style.fontSize = '3em';
-            div.classList.add("word");
+            div.style.backgroundColor = '#f0f0f0';
+            div.style.padding = '5px';
+            div.style.margin = '5px';
+            div.style.borderRadius = '8px';
+            div.style.cursor = 'pointer';
             div.draggable = true;
+            div.classList.add("draggable-word");
 
-            div.addEventListener("dragstart", handleDragStart);
+            div.addEventListener("dragstart", (e) => {
+                draggedElement = e.target;
+            });
+
             div.addEventListener("click", () => {
-                // Déplace le mot vers le dropZone au lieu de le cloner
                 if (!div.classList.contains("dropped-word")) {
                     dropZone.appendChild(div);
                     div.classList.add("dropped-word");
-                    div.draggable = true; // Rendre le mot toujours déplaçable
+                } else {
+                    wordsContainer.appendChild(div);
+                    div.classList.remove("dropped-word");
                 }
             });
 
             wordsContainer.appendChild(div);
         });
 
-        dropZone.addEventListener("click", (e) => {
-            if (e.target.classList.contains("dropped-word")) {
-                wordsContainer.appendChild(e.target);
-                e.target.classList.remove("dropped-word");
+        dropZone.style.display = "flex"; // Réorganiser les mots horizontalement
+        dropZone.style.flexWrap = "wrap"; // Autoriser le retour à la ligne si nécessaire
+        dropZone.style.justifyContent = "center"; // Centrer les mots dans la zone
+
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            if (draggedElement) {
+                const dropTarget = e.target;
+                if (dropTarget.classList.contains("dropped-word")) {
+                    dropZone.insertBefore(draggedElement, dropTarget);
+                } else {
+                    dropZone.appendChild(draggedElement);
+                }
+                draggedElement.classList.add("dropped-word");
             }
         });
     }
-
-    function handleDragStart(e) {
-        e.dataTransfer.setData("text/plain", e.target.id);
-    }
-
-    function handleDrop(e) {
-        e.preventDefault();
-        const sourceId = e.dataTransfer.getData("text/plain");
-        const sourceElement = document.getElementById(sourceId);
-        if (sourceElement && !dropZone.contains(sourceElement)) {
-            dropZone.appendChild(sourceElement);
-            sourceElement.classList.add("dropped-word");
-        } else if (sourceElement && dropZone.contains(sourceElement)) {
-            wordsContainer.appendChild(sourceElement);
-            sourceElement.classList.remove("dropped-word");
-        }
-    }
-
-    function handleDragOver(e) {
-        e.preventDefault();
-    }
-
-    dropZone.addEventListener("dragover", handleDragOver);
-    dropZone.addEventListener("drop", handleDrop);
 
     // Fonctions pour modifier et supprimer des phrases
     window.editPhrase = function(index) {
@@ -223,7 +240,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const newTranslation = prompt("Enter new translation:", phrases[index].translation);
         if (newChinese && newTranslation) {
             phrases[index] = { chinese: newChinese.trim(), translation: newTranslation.trim() };
-            alert("Phrase updated successfully!");
+            savePhrasesToLocalStorage();  // Sauvegarder après modification
             renderPhraseList();
         }
     };
@@ -231,7 +248,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.deletePhrase = function(index) {
         if (confirm("Are you sure you want to delete this phrase?")) {
             phrases.splice(index, 1);
-            alert("Phrase deleted successfully!");
+            savePhrasesToLocalStorage();  // Sauvegarder après suppression
             renderPhraseList();
         }
     };
